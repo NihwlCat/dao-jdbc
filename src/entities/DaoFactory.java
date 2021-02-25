@@ -8,7 +8,4 @@ public class DaoFactory {
         return new SellerDaoJDBC(DB.getConnection());
     }
 
-    public static void closeSellerDAO(){
-        DB.closeConnection();
-    }
 }
