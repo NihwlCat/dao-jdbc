@@ -2,6 +2,7 @@ package entities;
 
 import db.DB;
 import db.DBException;
+import db.DBIntegrityException;
 
 import java.sql.*;
 import java.util.ArrayList;
