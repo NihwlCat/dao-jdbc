@@ -3,10 +3,7 @@ package entities;
 import db.DB;
 import db.DBException;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -19,19 +16,97 @@ public class SellerDaoJDBC implements SellerDAO {
         this.conn = conn;
     }
 
+    public void closeSellerDAO () {
+        try {
+            conn.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
     @Override
     public void insert(Seller obj) {
+        PreparedStatement statement = null;
+
+        try {
+            statement = conn.prepareStatement(
+                    "INSERT INTO seller "
+                            + "(Name,Email,BirthDate,BaseSalary,DepartmentId) "
+                            + "VALUES (?,?,?,?,?)", Statement.RETURN_GENERATED_KEYS);
+
+            statement.setString(1,obj.getName());
+            statement.setString(2,obj.getEmail());
+            statement.setDate(3,new Date(obj.getBirthDate().getTime()));
+            statement.setDouble(4,obj.getBaseSalary());
+            statement.setInt(5,obj.getDepartment().getId());
+
+            int rows = statement.executeUpdate();
+
+            if(rows > 0){
+                ResultSet rs = statement.getGeneratedKeys();
+                if(rs.next()){
+                    // ResultSet .getInt() recupera o valor da coluna designada na linha atual como um int
+                    obj.setId(rs.getInt(1));
+                }
+                DB.closeResultSet(rs);
+            } else {
+                throw new DBException("Insert failed for no especified reason");
+            }
+
+        } catch(SQLException e){
+            throw new DBException(e.getMessage());
+        } finally {
+            DB.closeStatement(statement);
+        }
 
     }
 
     @Override
     public void update(Seller obj) {
+        PreparedStatement statement = null;
 
+        try {
+            statement = conn.prepareStatement(
+                    "UPDATE seller SET "
+                            + "Name = ?,Email = ?,BirthDate = ?,BaseSalary = ?,DepartmentId = ? "
+                            + "WHERE Id = ?");
+
+            statement.setString(1,obj.getName());
+            statement.setString(2,obj.getEmail());
+            statement.setDate(3,new Date(obj.getBirthDate().getTime()));
+            statement.setDouble(4,obj.getBaseSalary());
+            statement.setInt(5,obj.getDepartment().getId());
+
+            statement.setInt(6,obj.getId());
+
+            statement.executeUpdate();
+
+        } catch(SQLException e){
+            throw new DBException(e.getMessage());
+        } finally {
+            DB.closeStatement(statement);
+        }
     }
 
     @Override
     public void deleteById(Integer id) {
+        PreparedStatement statement = null;
 
+        try {
+            statement = conn.prepareStatement("DELETE FROM seller WHERE Id = ?");
+
+            statement.setInt(1,id);
+
+            int rows = statement.executeUpdate();
+
+            if (rows == 0)
+                throw new DBException("Delete failed. You tried to pick an id that doesn't exist");
+
+        } catch(SQLException e){
+            throw new DBException(e.getMessage());
+        } finally {
+            DB.closeStatement(statement);
+        }
     }
 
     @Override
@@ -66,6 +141,8 @@ public class SellerDaoJDBC implements SellerDAO {
                         new Department(rs.getInt("DepartmentId"),rs.getString("Departamento")));
 
                 return seller;
+            } else {
+                throw new DBException("Search failed");
             }
 
         } catch (SQLException e){
@@ -74,12 +151,62 @@ public class SellerDaoJDBC implements SellerDAO {
             DB.closeStatement(statement);
             DB.closeResultSet(rs);
         }
-        return null;
     }
 
     @Override
     public List<Seller> findAll() {
-        return null;
+        PreparedStatement statement = null;
+        ResultSet rs = null;
+
+        try {
+            statement = conn.prepareStatement(
+                    "SELECT seller.*,department.Name as Departamento "
+                            + "FROM seller INNER JOIN department "
+                            + "ON seller.DepartmentId = department.Id "
+                            + "ORDER BY Name");
+
+            rs = statement.executeQuery();
+
+            List<Seller> sellers = new ArrayList<>();
+
+            /*
+            * A estrutura Map que possui uma chave do tipo Integer e um elemento do tipo Department é criado.
+            * Dentro do while, um objeto Department pega o elemento do map, caso não exista o elemento então essa operação retorna null.
+            * Caso dep == null, o dep é finalmente instanciado.
+            *
+            * Esse método também serve para diferentes departamentos pois ao utilizar o método get e não encontrar elemento equivalente
+            * a chave do ResultSet, então será criado uma instância de Department e essa instância será colocada no map.
+            */
+
+            Map<Integer,Department> map = new HashMap<>();
+
+            while(rs.next()){
+                Department dep = map.get(rs.getInt("DepartmentId"));
+
+                if(dep == null){
+                    dep = new Department(rs.getInt("DepartmentId"),rs.getString("Departamento"));
+                    map.put(rs.getInt("DepartmentId"),dep);
+                }
+
+                Seller seller = new Seller(
+                        rs.getInt("Id"),
+                        rs.getString("Name"),
+                        rs.getString("Email"),
+                        rs.getDate("BirthDate"),
+                        rs.getDouble("BaseSalary"),
+                        dep
+                );
+                sellers.add(seller);
+            }
+
+            return sellers;
+
+        } catch (SQLException e){
+            throw new DBException(e.getMessage());
+        } finally {
+            DB.closeStatement(statement);
+            DB.closeResultSet(rs);
+        }
     }
 
     @Override

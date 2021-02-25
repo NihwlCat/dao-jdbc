@@ -21,6 +21,54 @@ public class Seller implements Serializable {
         this.department = department;
     }
 
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public void setBirthDate(Date birthDate) {
+        this.birthDate = birthDate;
+    }
+
+    public void setBaseSalary(Double baseSalary) {
+        this.baseSalary = baseSalary;
+    }
+
+    public void setDepartment(Department department) {
+        this.department = department;
+    }
+
+    public Department getDepartment(){
+        return department;
+    }
+
+    public String getName(){
+        return name;
+    }
+
+    public String getEmail(){
+        return email;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
+    }
+
+    public Integer getId() {
+        return id;
+    }
+
+    public Date getBirthDate(){
+        return birthDate;
+    }
+
+    public Double getBaseSalary(){
+        return baseSalary;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
