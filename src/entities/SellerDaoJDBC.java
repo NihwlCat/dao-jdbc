@@ -7,7 +7,10 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class SellerDaoJDBC implements SellerDAO {
     private Connection conn; // Dependência de Connection para poder puxar DB.getConnection
@@ -77,5 +80,62 @@ public class SellerDaoJDBC implements SellerDAO {
     @Override
     public List<Seller> findAll() {
         return null;
+    }
+
+    @Override
+    public List<Seller> findByDepartment(Department department) {
+
+        PreparedStatement statement = null;
+        ResultSet rs = null;
+
+        try {
+            statement = conn.prepareStatement(
+                    "SELECT seller.*,department.Name as Departamento "
+                    + "FROM seller INNER JOIN department "
+                    + "ON seller.DepartmentId = department.Id "
+                    + "WHERE DepartmentId = ? "
+                    + "ORDER BY Name");
+
+            statement.setInt(1,department.getId());
+
+            rs = statement.executeQuery();
+
+            List<Seller> sellers = new ArrayList<>();
+
+            /*
+            * A estrutura Map que possui uma chave do tipo Integer e um elemento do tipo Department é criado.
+            * Dentro do while, um objeto Department pega o elemento do map, caso não exista o elemento então essa operação retorna null.
+            * Caso dep == null, o dep é finalmente instanciado.
+            */
+
+            Map<Integer,Department> map = new HashMap<>();
+
+            while(rs.next()){
+                Department dep = map.get(rs.getInt("DepartmentId"));
+
+                if(dep == null){
+                    dep = new Department(rs.getInt("DepartmentId"),rs.getString("Departamento"));
+                    map.put(rs.getInt("DepartmentId"),dep);
+                }
+
+                Seller seller = new Seller(
+                        rs.getInt("Id"),
+                        rs.getString("Name"),
+                        rs.getString("Email"),
+                        rs.getDate("BirthDate"),
+                        rs.getDouble("BaseSalary"),
+                        dep
+                );
+                sellers.add(seller);
+            }
+
+            return sellers;
+
+        } catch (SQLException e){
+            throw new DBException(e.getMessage());
+        } finally {
+            DB.closeStatement(statement);
+            DB.closeResultSet(rs);
+        }
     }
 }
