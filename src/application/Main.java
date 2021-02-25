@@ -1,16 +1,21 @@
 package application;
 
-import entities.Department;
-import entities.Seller;
+import db.DB;
+import entities.*;
 
 import java.util.Date;
 
 public class Main {
     public static void main(String[] args) {
-        Department obj = new Department(1,"Books");
 
-        Seller seller = new Seller(21,"Bob","bob@gmail",new Date(),2500.00,obj);
+        /*
+        * Através do DaoFactory a instância de SellerDaoJDBC é criada.
+        * O método .findById pode ser chamado direto após a instanciação da classe.
+        */
 
+        Seller seller = DaoFactory.createSellerDao().findById(/*Exemplo*/3);
         System.out.println(seller);
+
+
     }
 }
